@@ -2,15 +2,10 @@ package com.github.brunodm99.trekteroApi.security
 
 import com.github.brunodm99.trekteroApi.Constants
 import com.github.brunodm99.trekteroApi.data.entity.JWTToken
-import com.github.brunodm99.trekteroApi.data.repository.JWTTokenRepository
-import com.github.brunodm99.trekteroApi.data.service.JWTTokenService
-import com.github.brunodm99.trekteroApi.data.utils.JWT.getJWTToken
 import io.jsonwebtoken.*
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.context.SecurityContextHolder
-import org.springframework.stereotype.Component
 import org.springframework.web.filter.OncePerRequestFilter
 import java.io.IOException
 import java.sql.DriverManager
@@ -40,7 +35,7 @@ class JWTAuthorizationFilter : OncePerRequestFilter() {
             chain.doFilter(request, response)
         } catch (e: ExpiredJwtException) {
             response.status = HttpServletResponse.SC_FORBIDDEN
-            response.sendError(HttpServletResponse.SC_FORBIDDEN, e.message)
+            response.sendError(HttpServletResponse.SC_FORBIDDEN, "EXPIRED TOKEN")
             return
         } catch (e: UnsupportedJwtException) {
             response.status = HttpServletResponse.SC_FORBIDDEN
@@ -54,7 +49,7 @@ class JWTAuthorizationFilter : OncePerRequestFilter() {
     }
 
     private fun validateToken(request: HttpServletRequest): Claims {
-        val jwtToken = request.getHeader(HEADER).replace(PREFIX, "")
+        val jwtToken = request.getHeader(HEADER).replace(PREFIX, "").trim()
         val claims = Jwts.parser().setSigningKey(Constants.SECRET_KEY.toByteArray()).parseClaimsJws(jwtToken).body
 
         val token = getJWTToken(jwtToken)
@@ -65,6 +60,8 @@ class JWTAuthorizationFilter : OncePerRequestFilter() {
                 delete(token)
             }
         }
+
+        if(token == null) claims["authorities"] = null
 
         return claims
     }
@@ -89,7 +86,8 @@ class JWTAuthorizationFilter : OncePerRequestFilter() {
             jwtToken = JWTToken(
                 rs.getString("token"),
                 rs.getString("expire_at"),
-                rs.getInt("denied"))
+                rs.getInt("denied"),
+                rs.getString("user_email"))
         }
         pstm.close()
         conn.close()

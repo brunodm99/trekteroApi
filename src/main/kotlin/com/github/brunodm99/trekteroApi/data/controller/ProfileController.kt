@@ -1,32 +1,29 @@
 package com.github.brunodm99.trekteroApi.data.controller
 
-import com.github.brunodm99.trekteroApi.data.response.AuthResponse
-import com.github.brunodm99.trekteroApi.data.service.JWTTokenService
+import com.github.brunodm99.trekteroApi.data.response.LogoutResponse
+import com.github.brunodm99.trekteroApi.data.service.AccountServiceV1
+import com.github.brunodm99.trekteroApi.data.service.AuthenticatorService
+import com.github.brunodm99.trekteroApi.data.service.JWTTokenServiceV1
+import org.springframework.beans.factory.InitializingBean
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("api/v1/profile")
-class ProfileController {
+class ProfileController  : InitializingBean {
     @Autowired
-    lateinit var tokenService: JWTTokenService
+    lateinit var service: AccountServiceV1
+    @Autowired
+    lateinit var tokenService: JWTTokenServiceV1
 
+    private lateinit var authenticator: AuthenticatorService
+
+    override fun afterPropertiesSet(){
+        authenticator = AuthenticatorService(service, tokenService)
+    }
     @PostMapping("/logout")
-    fun logout(@RequestHeader("Authorization") accessToken: String): ResponseEntity<Any> {
-        val response: ResponseEntity<Any>
-        val token = accessToken.replace("Bearer", "")
-
-        response = try{
-            tokenService.delete(token)
-            val profileResponse = AuthResponse(null, "Usuario desconectado con éxito.")
-            ResponseEntity(profileResponse, HttpStatus.OK)
-        }catch (e: Exception){
-            val authResponse = AuthResponse(null, e.message)
-            ResponseEntity(authResponse, HttpStatus.INTERNAL_SERVER_ERROR)
-        }
-
-        return response
+    fun logout(@RequestHeader("Authorization") token: String): ResponseEntity<LogoutResponse> {
+        return authenticator.logout(token)
     }
 }

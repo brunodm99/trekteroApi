@@ -1,5 +1,7 @@
 package com.github.brunodm99.trekteroApi.data.entity
 
+import com.github.brunodm99.trekteroApi.data.utils.DateTimeUtils
+import com.github.brunodm99.trekteroApi.data.utils.DateTimeUtils.toLocalDateTime
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import javax.persistence.Column
@@ -16,14 +18,14 @@ data class JWTToken(
     @Column(name="expire_at")
     val expireAt: String,
     @Column(length = 1)
-    val denied: Int
+    var denied: Int,
+    var userEmail: String
 ){
     fun isExpired(): Boolean{
-        val dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS")
-        val expiredDate = LocalDateTime.from(dtf.parse(expireAt))
-        val currentTime = LocalDateTime.parse(dtf.format(LocalDateTime.now()))
+        val expiredDate = expireAt.toLocalDateTime()
+        val currentTime = DateTimeUtils.currentDateTime().toLocalDateTime()
 
-        return expiredDate.isAfter(currentTime)
+        return currentTime.isAfter(expiredDate)
     }
 
     fun isDenied() = denied == 1

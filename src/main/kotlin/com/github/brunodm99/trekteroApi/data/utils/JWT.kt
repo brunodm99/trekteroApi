@@ -2,16 +2,16 @@ package com.github.brunodm99.trekteroApi.data.utils
 
 import com.github.brunodm99.trekteroApi.Constants
 import com.github.brunodm99.trekteroApi.data.entity.JWTToken
+import com.github.brunodm99.trekteroApi.data.utils.DateTimeUtils.toDate
+import com.github.brunodm99.trekteroApi.data.utils.DateTimeUtils.toLocalDateTime
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.SignatureAlgorithm
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.authority.AuthorityUtils
-import java.sql.DriverManager
-import java.util.*
 import java.util.stream.Collectors
 
 object JWT {
-    fun getJWTToken(useremail: String): String {
+    fun getJWTToken(useremail: String): JWTToken {
         val secretKey = Constants.SECRET_KEY
 
         val grantedAuthorities = AuthorityUtils
@@ -30,24 +30,14 @@ object JWT {
                 secretKey.toByteArray()
             )
 
-        val issuedAt = Date(System.currentTimeMillis())
-        val expirationDate = Date(System.currentTimeMillis() + 600000)
-        builder.setIssuedAt(issuedAt)
-        builder.setExpiration(expirationDate)
+        val issuedAt = DateTimeUtils.currentDateTime()
+        val expirationDate = issuedAt.toLocalDateTime().plusDays(30)
+        builder.setIssuedAt(issuedAt.toLocalDateTime().toDate())
+        builder.setExpiration(expirationDate.toDate())
 
         val token = builder.compact()
-        saveToken(JWTToken(token, expirationDate.toString(), 0))
-        return token
+
+        return JWTToken(token, DateTimeUtils.asString(expirationDate), 0, useremail)
     }
 
-    private fun saveToken(token: JWTToken){
-        val conn = DriverManager.getConnection("jdbc:mysql://localhost/trektero?useSSL=false&serverTimeXone=UTC&allowPublicKeyRetrieval=true", "root", "@2804BHdaP@")
-        val pstm = conn.prepareStatement("INSERT INTO token_list(token, expire_at, denied) VALUES(?, ?, ?)")
-        pstm.setString(1, token.token)
-        pstm.setString(2, token.expireAt)
-        pstm.setInt(3, token.denied)
-        pstm.executeUpdate()
-        pstm.close()
-        conn.close()
-    }
 }

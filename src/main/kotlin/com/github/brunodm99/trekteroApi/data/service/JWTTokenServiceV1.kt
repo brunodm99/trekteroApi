@@ -7,7 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 
 @Service
-class JWTTokenService : JWTTokenAction{
+class JWTTokenServiceV1 : JWTTokenAction{
     @Autowired
     lateinit var repository: JWTTokenRepository
 
@@ -15,14 +15,22 @@ class JWTTokenService : JWTTokenAction{
 
     override fun exists(token: String) = repository.findById(token).isPresent
 
+    override fun denied(token: String) {
+        val jwtToken = get(token)
+        jwtToken.denied = 1
+        repository.delete(jwtToken)
+        save(jwtToken)
+    }
 
     override fun save(token: JWTToken) = repository.save(token)
 
-    fun delete(token: String){
-        repository.delete(get(token))
-    }
-
     override fun delete(token: JWTToken) {
         repository.delete(token)
+    }
+
+    override fun deleteAll(useremail: String) {
+        val allToken = repository.getByUserEmail(useremail)
+
+        allToken.forEach{ delete(it) }
     }
 }

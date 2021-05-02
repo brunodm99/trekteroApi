@@ -9,13 +9,14 @@ import java.lang.NullPointerException
 import java.util.*
 
 @Service
-class AccountServiceV1 : AccountAction{
-    @Autowired
-    lateinit var repository: AccountRepository
+class AccountServiceV1 : AccountAction {
+   @Autowired
+   lateinit var repository: AccountRepository
 
-    override fun get(accessToken: String): Account {
+
+    override fun getByUseremail(useremail: String): Account {
         try{
-            return repository.findByAccessToken(accessToken)
+            return repository.findByEmail(useremail)!!
         }catch(e: Exception){
             throw NullPointerException("")
         }
@@ -37,7 +38,13 @@ class AccountServiceV1 : AccountAction{
 
     override fun edit(account: Account) : Account{
         try{
-            delete(account)
+            val accountToSave = repository.getOne(account.id)
+            accountToSave.lastConnection = account.lastConnection
+
+            if(account.password != accountToSave.password)
+                accountToSave.password = account.password
+
+            save(accountToSave)
             return repository.save(account)
         }catch (e: Exception){
             throw NullPointerException("")
